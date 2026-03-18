@@ -4,93 +4,34 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>贪吃大蛇</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      background: #0f0f0f;
-      color: #fff;
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      gap: 16px;
-    }
-
-    h1 {
-      font-size: 1.8rem;
-      letter-spacing: 0.1em;
-      color: #4ade80;
-    }
-
-    #scoreboard {
-      display: flex;
-      gap: 32px;
-      font-size: 0.95rem;
-      color: #aaa;
-    }
-
-    #scoreboard span { color: #fff; font-weight: 600; }
-
-    canvas {
-      border: 2px solid #2a2a2a;
-      border-radius: 8px;
-      background: #111;
-      display: block;
-    }
-
-    #message {
-      font-size: 1rem;
-      color: #888;
-      min-height: 1.4em;
-      text-align: center;
-    }
-
-    #message b { color: #4ade80; }
-
-    #controls {
-      display: grid;
-      grid-template-columns: repeat(3, 44px);
-      grid-template-rows: repeat(2, 44px);
-      gap: 6px;
-      margin-top: 8px;
-    }
-
-    .btn {
-      background: #1e1e1e;
-      border: 1px solid #333;
-      border-radius: 8px;
-      color: #fff;
-      font-size: 1.1rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      user-select: none;
-      transition: background 0.1s;
-    }
-
-    .btn:active { background: #2e2e2e; }
-    #btn-up    { grid-column: 2; grid-row: 1; }
-    #btn-left  { grid-column: 1; grid-row: 2; }
-    #btn-down  { grid-column: 2; grid-row: 2; }
-    #btn-right { grid-column: 3; grid-row: 2; }
-  </style>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <h1>🐍 贪吃大蛇</h1>
 
-  <div id="scoreboard">
-    得分：<span id="score">0</span>
-    &nbsp;&nbsp;最高：<span id="best">0</span>
+  <!-- Scoreboard + pause -->
+  <div id="top-bar">
+    <div id="scoreboard">
+      <div class="score-cell">
+        得分
+        <span id="score">0</span>
+      </div>
+      <div class="score-cell">
+        最高
+        <span id="best" class="highlight">0</span>
+      </div>
+    </div>
+    <button id="btn-pause" title="暂停 (P)">⏸</button>
   </div>
 
-  <canvas id="canvas" width="400" height="400"></canvas>
+  <!-- Canvas -->
+  <div id="canvas-wrap">
+    <canvas id="canvas" width="400" height="400"></canvas>
+  </div>
 
   <div id="message"><b>按空格键 / 点击屏幕</b> 开始游戏</div>
 
+  <!-- D-pad for mobile -->
   <div id="controls">
     <button class="btn" id="btn-up">▲</button>
     <button class="btn" id="btn-left">◀</button>
@@ -98,191 +39,26 @@
     <button class="btn" id="btn-right">▶</button>
   </div>
 
-  <script>
-    const canvas  = document.getElementById('canvas');
-    const ctx     = canvas.getContext('2d');
-    const COLS    = 20;
-    const ROWS    = 20;
-    const CELL    = canvas.width / COLS;   // 20px
+  <!-- Game Over overlay (DOM-based, clearly visible) -->
+  <div id="overlay" class="hidden">
+    <div class="overlay-card">
+      <button id="btn-close-overlay" title="关闭">✕</button>
+      <h2>GAME OVER</h2>
+      <div class="overlay-stats">
+        <div class="overlay-stat">
+          <span class="label">本局得分</span>
+          <span class="value" id="overlay-score">0</span>
+        </div>
+        <div class="overlay-stat">
+          <span class="label">最高纪录</span>
+          <span class="value green" id="overlay-best">0</span>
+        </div>
+      </div>
+      <button id="btn-restart">再来一局</button>
+      <span class="overlay-hint">���按空格键重新开始</span>
+    </div>
+  </div>
 
-    const COLOR_SNAKE_HEAD = '#4ade80';
-    const COLOR_SNAKE_BODY = '#22c55e';
-    const COLOR_FOOD       = '#f87171';
-    const COLOR_GRID       = '#161616';
-
-    let snake, dir, nextDir, food, score, best, running, loop;
-
-    best = parseInt(localStorage.getItem('snake_best') || '0');
-    document.getElementById('best').textContent = best;
-
-    function init() {
-      snake   = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
-      dir     = { x: 1, y: 0 };
-      nextDir = { x: 1, y: 0 };
-      score   = 0;
-      running = true;
-      document.getElementById('score').textContent = 0;
-      document.getElementById('message').textContent = '';
-      placeFood();
-      clearInterval(loop);
-      loop = setInterval(tick, 120);
-    }
-
-    function placeFood() {
-      let pos;
-      do {
-        pos = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) };
-      } while (snake.some(s => s.x === pos.x && s.y === pos.y));
-      food = pos;
-    }
-
-    function tick() {
-      dir = nextDir;
-      const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
-
-      // 撞墙
-      if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) return gameOver();
-      // 撞自身
-      if (snake.some(s => s.x === head.x && s.y === head.y)) return gameOver();
-
-      snake.unshift(head);
-
-      if (head.x === food.x && head.y === food.y) {
-        score++;
-        document.getElementById('score').textContent = score;
-        if (score > best) {
-          best = score;
-          localStorage.setItem('snake_best', best);
-          document.getElementById('best').textContent = best;
-        }
-        placeFood();
-      } else {
-        snake.pop();
-      }
-
-      draw();
-    }
-
-    function gameOver() {
-      clearInterval(loop);
-      running = false;
-      document.getElementById('message').innerHTML =
-        `游戏结束，得分 <b>${score}</b>！按空格键重新开始`;
-      drawGameOver();
-    }
-
-    function draw() {
-      // 背景
-      ctx.fillStyle = '#111';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // 网格
-      ctx.strokeStyle = COLOR_GRID;
-      ctx.lineWidth = 0.5;
-      for (let i = 0; i <= COLS; i++) {
-        ctx.beginPath(); ctx.moveTo(i * CELL, 0); ctx.lineTo(i * CELL, canvas.height); ctx.stroke();
-      }
-      for (let j = 0; j <= ROWS; j++) {
-        ctx.beginPath(); ctx.moveTo(0, j * CELL); ctx.lineTo(canvas.width, j * CELL); ctx.stroke();
-      }
-
-      // 食物
-      ctx.fillStyle = COLOR_FOOD;
-      ctx.beginPath();
-      ctx.arc(food.x * CELL + CELL / 2, food.y * CELL + CELL / 2, CELL / 2 - 2, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 蛇身
-      snake.forEach((seg, i) => {
-        ctx.fillStyle = i === 0 ? COLOR_SNAKE_HEAD : COLOR_SNAKE_BODY;
-        const r = i === 0 ? 5 : 3;
-        roundRect(ctx, seg.x * CELL + 1, seg.y * CELL + 1, CELL - 2, CELL - 2, r);
-        ctx.fill();
-      });
-    }
-
-    function drawGameOver() {
-      draw();
-      ctx.fillStyle = 'rgba(0,0,0,0.55)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 28px system-ui';
-      ctx.textAlign = 'center';
-      ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 10);
-      ctx.font = '16px system-ui';
-      ctx.fillStyle = '#aaa';
-      ctx.fillText(`得分：${score}`, canvas.width / 2, canvas.height / 2 + 22);
-    }
-
-    function roundRect(ctx, x, y, w, h, r) {
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.lineTo(x + w - r, y);
-      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-      ctx.lineTo(x + w, y + h - r);
-      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-      ctx.lineTo(x + r, y + h);
-      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-      ctx.lineTo(x, y + r);
-      ctx.quadraticCurveTo(x, y, x + r, y);
-      ctx.closePath();
-    }
-
-    // 键盘控制
-    document.addEventListener('keydown', e => {
-      const map = {
-        ArrowUp:    { x: 0,  y: -1 },
-        ArrowDown:  { x: 0,  y:  1 },
-        ArrowLeft:  { x: -1, y:  0 },
-        ArrowRight: { x: 1,  y:  0 },
-        w: { x: 0, y: -1 }, s: { x: 0, y: 1 },
-        a: { x: -1, y: 0 }, d: { x: 1, y: 0 },
-      };
-      if (e.key === ' ') { e.preventDefault(); if (!running) init(); return; }
-      const d = map[e.key];
-      if (!d) return;
-      // 禁止反向
-      if (d.x !== -dir.x || d.y !== -dir.y) nextDir = d;
-    });
-
-    // 触摸 / 点击开始
-    canvas.addEventListener('click', () => { if (!running) init(); });
-
-    // 移动端方向按钮
-    const btnMap = {
-      'btn-up':    { x: 0,  y: -1 },
-      'btn-down':  { x: 0,  y:  1 },
-      'btn-left':  { x: -1, y:  0 },
-      'btn-right': { x: 1,  y:  0 },
-    };
-    Object.entries(btnMap).forEach(([id, d]) => {
-      document.getElementById(id).addEventListener('click', () => {
-        if (!running) { init(); return; }
-        if (d.x !== -dir.x || d.y !== -dir.y) nextDir = d;
-      });
-    });
-
-    // 触摸滑动
-    let touchStart = null;
-    canvas.addEventListener('touchstart', e => {
-      touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      e.preventDefault();
-    }, { passive: false });
-    canvas.addEventListener('touchend', e => {
-      if (!touchStart) return;
-      const dx = e.changedTouches[0].clientX - touchStart.x;
-      const dy = e.changedTouches[0].clientY - touchStart.y;
-      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) { if (!running) init(); return; }
-      let d;
-      if (Math.abs(dx) > Math.abs(dy)) d = dx > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 };
-      else                              d = dy > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 };
-      if (d.x !== -dir.x || d.y !== -dir.y) nextDir = d;
-      touchStart = null;
-      e.preventDefault();
-    }, { passive: false });
-
-    // 初始画面
-    draw();
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
