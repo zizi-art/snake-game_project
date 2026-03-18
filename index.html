@@ -3,61 +3,92 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>贪吃大蛇</title>
+  <title>贪吃大蛇 · Snake Game</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>🐍 贪吃大蛇</h1>
 
-  <!-- Scoreboard + pause -->
-  <div id="top-bar">
-    <div id="scoreboard">
-      <div class="score-cell">
-        得分
-        <span id="score">0</span>
+  <!-- ===== Header ===== -->
+  <header>
+    <div class="logo">🐍 贪吃大蛇</div>
+    <p class="tagline">经典贪吃蛇 · 纯前端实现 · 支持键盘 &amp; 触控</p>
+  </header>
+
+  <!-- ===== Game shell ===== -->
+  <main>
+
+    <!-- Top bar: score + pause -->
+    <div id="top-bar">
+      <div id="scoreboard">
+        <div class="score-cell">
+          <span class="score-label">得分</span>
+          <span id="score">0</span>
+        </div>
+        <div class="score-cell">
+          <span class="score-label">最高</span>
+          <span id="best" class="highlight">0</span>
+        </div>
       </div>
-      <div class="score-cell">
-        最高
-        <span id="best" class="highlight">0</span>
-      </div>
+      <button id="btn-pause" title="暂停 (P / Space)" disabled>⏸</button>
     </div>
-    <button id="btn-pause" title="暂停 (P)">⏸</button>
-  </div>
 
-  <!-- Canvas -->
-  <div id="canvas-wrap">
-    <canvas id="canvas" width="400" height="400"></canvas>
-  </div>
+    <!-- Canvas -->
+    <div id="canvas-wrap">
+      <canvas id="canvas" width="400" height="400"></canvas>
+    </div>
 
-  <div id="message"><b>按空格键 / 点击屏幕</b> 开始游戏</div>
+    <!-- Status line -->
+    <div id="message"></div>
 
-  <!-- D-pad for mobile -->
-  <div id="controls">
-    <button class="btn" id="btn-up">▲</button>
-    <button class="btn" id="btn-left">◀</button>
-    <button class="btn" id="btn-down">▼</button>
-    <button class="btn" id="btn-right">▶</button>
-  </div>
+    <!-- Difficulty selector -->
+    <div id="difficulty">
+      <button class="diff-btn" data-speed="240">🐢 简单</button>
+      <button class="diff-btn active" data-speed="180">🐍 普通</button>
+      <button class="diff-btn" data-speed="100">⚡ 困难</button>
+    </div>
 
-  <!-- Game Over overlay (DOM-based, clearly visible) -->
-  <div id="overlay" class="hidden">
+    <!-- D-pad (mobile) -->
+    <div id="controls">
+      <button class="dpad-btn" id="btn-up"    aria-label="��">▲</button>
+      <button class="dpad-btn" id="btn-left"  aria-label="左">◀</button>
+      <button class="dpad-btn" id="btn-down"  aria-label="下">▼</button>
+      <button class="dpad-btn" id="btn-right" aria-label="右">▶</button>
+    </div>
+
+    <!-- How to play -->
+    <div id="how-to-play">
+      <span>⌨️ 方向键 / WASD 移动</span>
+      <span>⏸ P / 空格 暂停</span>
+      <span>📱 滑动或点击方向键</span>
+    </div>
+
+  </main>
+
+  <!-- ===== Game Over Overlay ===== -->
+  <div id="overlay" class="hidden" role="dialog" aria-modal="true" aria-label="游戏结束">
     <div class="overlay-card">
-      <button id="btn-close-overlay" title="关闭">✕</button>
+      <button id="btn-close-overlay" title="关闭" aria-label="关闭">✕</button>
+      <div class="overlay-icon">💀</div>
       <h2>GAME OVER</h2>
       <div class="overlay-stats">
         <div class="overlay-stat">
-          <span class="label">本局得分</span>
-          <span class="value" id="overlay-score">0</span>
+          <span class="stat-label">本局得分</span>
+          <span class="stat-value" id="overlay-score">0</span>
         </div>
         <div class="overlay-stat">
-          <span class="label">最高纪录</span>
-          <span class="value green" id="overlay-best">0</span>
+          <span class="stat-label">最高纪录</span>
+          <span class="stat-value green" id="overlay-best">0</span>
         </div>
       </div>
       <button id="btn-restart">再来一局</button>
-      <span class="overlay-hint">���按空格键重新开始</span>
+      <span class="overlay-hint">空格键 / 点击屏幕 重新开始</span>
     </div>
   </div>
+
+  <!-- ===== Footer ===== -->
+  <footer>
+    Built with pure HTML · CSS · JS &nbsp;·&nbsp; No dependencies
+  </footer>
 
   <script src="script.js"></script>
 </body>
